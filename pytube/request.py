@@ -4,13 +4,17 @@ import json
 import logging
 import re
 import socket
+import browsercookie
+
 from functools import lru_cache
 from urllib import parse
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+import urllib.request
 
 from pytube.exceptions import RegexMatchError, MaxRetriesExceeded
 from pytube.helpers import regex_search
+import os
 
 logger = logging.getLogger(__name__)
 default_range_size = 9437184  # 9MB
@@ -31,10 +35,15 @@ def _execute_request(
         if not isinstance(data, bytes):
             data = bytes(json.dumps(data), encoding="utf-8")
     if url.lower().startswith("http"):
+        cookie_path = os.path.join(os.getenv('APPDATA', ''), r'..\Local\Google\Chrome\User Data\Profile 1\Network\Cookies')
+        cj = browsercookie.chrome(cookie_file=cookie_path)
+        opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+
         request = Request(url, headers=base_headers, method=method, data=data)
     else:
         raise ValueError("Invalid URL")
-    return urlopen(request, timeout=timeout)  # nosec
+    #return urlopen(request, timeout=timeout)  # nosec
+    return opener.open(request)
 
 
 def get(url, extra_headers=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
